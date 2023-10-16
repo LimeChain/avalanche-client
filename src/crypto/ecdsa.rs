@@ -19,11 +19,8 @@ pub fn verify_signature(
 }
 
 pub fn sign_message(message: &[u8], private_key: &[u8]) -> Result<Signature, CryptoError> {
-    let key_pair = EcdsaKeyPair::from_pkcs8(
-        &ECDSA_P256_SHA256_ASN1_SIGNING,
-        private_key,
-        RANDOM.deref(),
-    )?;
+    let key_pair =
+        EcdsaKeyPair::from_pkcs8(&ECDSA_P256_SHA256_ASN1_SIGNING, private_key, RANDOM.deref())?;
     let sig = key_pair
         .sign(RANDOM.deref(), message)
         .or(Err(CryptoError::Sign))?;

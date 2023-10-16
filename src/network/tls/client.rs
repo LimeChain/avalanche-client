@@ -4,8 +4,8 @@ use std::process;
 use std::sync::Arc;
 use std::time::SystemTime;
 
-use crate::network::peer::ipaddr::{SignedIp, UnsignedIp};
 use super::bytes_to_ip_addr;
+use crate::network::peer::ipaddr::{SignedIp, UnsignedIp};
 use avalanche_types::ids::node;
 use avalanche_types::proto::p2p;
 use avalanche_types::proto::p2p::Version;
@@ -116,15 +116,11 @@ impl TlsClient {
         // Read it and then write it to stdout.
         if io_state.plaintext_bytes_to_read() > 0 {
             let mut message = vec![0u8; io_state.plaintext_bytes_to_read()];
-            self.tls_conn
-                .reader()
-                .read_exact(&mut message)
-                .unwrap();
+            self.tls_conn.reader().read_exact(&mut message).unwrap();
 
             // TODO: Improve length extraction
             let message = message[4..].to_vec();
             self.handle_inbound_message(&message);
-
         }
 
         // If that fails, the peer might have started a clean TLS-level
@@ -181,8 +177,7 @@ impl TlsClient {
         self.closing
     }
 
-
-    pub fn handle_version(&mut self, msg: Version)  {
+    pub fn handle_version(&mut self, msg: Version) {
         // TODO: There must be a better(earlier) time to extract the certificate data
         if self.handle_certificate().is_err() {
             warn!("Failed to handle peer certificate");
@@ -191,8 +186,7 @@ impl TlsClient {
         if msg.network_id != self.network_id {
             warn!(
                 "Peer network ID {} doesn't match our network ID {}",
-                msg.network_id,
-                self.network_id
+                msg.network_id, self.network_id
             );
             return;
         }
@@ -219,9 +213,7 @@ impl TlsClient {
 
         // Skip subnet handling for now
         if msg.ip_addr.len() != 16 {
-            warn!(
-                "Peer IP address is not 16 bytes long"
-            );
+            warn!("Peer IP address is not 16 bytes long");
             return;
         }
 
@@ -234,11 +226,7 @@ impl TlsClient {
         };
 
         self.ip = Some(SignedIp::new(
-            UnsignedIp::new(
-                ip_addr,
-                msg.ip_port as u16,
-                msg.my_version_time
-            ),
+            UnsignedIp::new(ip_addr, msg.ip_port as u16, msg.my_version_time),
             msg.sig.to_vec(),
         ));
         if let Some(cert) = &self.x509_certificate {
@@ -289,42 +277,51 @@ impl TlsClient {
         Ok(())
     }
     fn handle_inbound_message(&mut self, message: &Vec<u8>) {
-        let p2p_msg: p2p::Message = prost::Message::decode(message.as_slice())
-            .expect("failed to decode inbound message");
+        let p2p_msg: p2p::Message =
+            prost::Message::decode(message.as_slice()).expect("failed to decode inbound message");
 
         match p2p_msg.message.unwrap() {
             p2p::message::Message::Ping(_) => {
                 info!("Received Ping message");
-            },
+            }
             p2p::message::Message::Pong(_) => {
                 info!("Received Pong message");
-            },
+            }
             p2p::message::Message::Version(msg) => {
                 info!("Received Version message");
                 self.handle_version(msg);
-            },
+            }
             p2p::message::Message::PeerList(msg) => {
                 info!("Received Peer list message");
                 for (i, claimed_port) in msg.claimed_ip_ports.iter().enumerate() {
                     info!("Peer {}:", i);
-                    info!("Peer claimed ip: {}", bytes_to_ip_addr(claimed_port.ip_addr.to_vec()).unwrap());
+                    info!(
+                        "Peer claimed ip: {}",
+                        bytes_to_ip_addr(claimed_port.ip_addr.to_vec()).unwrap()
+                    );
                     info!("Peer claimed port: {}", claimed_port.ip_port);
                     info!("Peer claimed timestamp: {}", claimed_port.timestamp);
-                    info!("Peer claimed signature: {}", hex::encode(&claimed_port.signature));
+                    info!(
+                        "Peer claimed signature: {}",
+                        hex::encode(&claimed_port.signature)
+                    );
                     info!("Peer claimed tx id: {}", hex::encode(&claimed_port.tx_id));
-                    info!("Peer claimed x509 certificate: {}", hex::encode(&claimed_port.x509_certificate));
+                    info!(
+                        "Peer claimed x509 certificate: {}",
+                        hex::encode(&claimed_port.x509_certificate)
+                    );
                 }
-            },
+            }
             p2p::message::Message::CompressedZstd(msg) => {
                 info!("Received CompressedZstd message");
                 let read: &mut dyn Read = &mut msg.as_ref();
-                let decompressed = zstd::stream::decode_all(read)
-                    .expect("failed to decompress zstd message");
+                let decompressed =
+                    zstd::stream::decode_all(read).expect("failed to decompress zstd message");
                 self.handle_inbound_message(&decompressed);
-            },
+            }
             p2p::message::Message::CompressedGzip(_) => {
                 info!("Received CompressedGzip message");
-            },
+            }
             _ => {
                 warn!("Received Unknown message type: {}", hex::encode(message));
             }

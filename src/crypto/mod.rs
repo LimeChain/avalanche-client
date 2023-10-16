@@ -1,5 +1,5 @@
-use ring::rand::SystemRandom;
 use once_cell::sync::Lazy;
+use ring::rand::SystemRandom;
 
 pub mod ecdsa;
 pub mod error;

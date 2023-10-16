@@ -1,8 +1,9 @@
 use crate::bootstrap::Bootstrappers;
+use crate::crypto::ecdsa;
+use crate::network::peer::ipaddr::pack_ip_with_timestamp;
 use avalanche_types::message;
 use avalanche_types::packer::ip::IP_LEN;
 use avalanche_types::packer::Packer;
-use crate::crypto::ecdsa;
 use env_logger::Env;
 use log::info;
 use mio::net::TcpStream;
@@ -13,7 +14,6 @@ use std::io;
 use std::net::{IpAddr, Ipv4Addr};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, SystemTime};
-use crate::network::peer::ipaddr::pack_ip_with_timestamp;
 
 mod bootstrap;
 mod crypto;
@@ -66,7 +66,8 @@ fn start() -> io::Result<()> {
         .as_secs();
 
     let packer = Packer::new(IP_LEN + 8, 0);
-    pack_ip_with_timestamp(&packer, IpAddr::V4(Ipv4Addr::LOCALHOST), 9651, now_unix).expect("failed to pack ip");
+    pack_ip_with_timestamp(&packer, IpAddr::V4(Ipv4Addr::LOCALHOST), 9651, now_unix)
+        .expect("failed to pack ip");
     let packed = packer.take_bytes();
     let (private_key, _) = cert_manager::x509::load_pem_key_cert_to_der(
         cert.key_path.as_ref(),

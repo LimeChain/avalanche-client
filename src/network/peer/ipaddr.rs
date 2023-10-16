@@ -1,5 +1,5 @@
-use avalanche_types::{packer::ip::IP_LEN, message::ip_addr_to_bytes};
 use avalanche_types::packer::Packer;
+use avalanche_types::{message::ip_addr_to_bytes, packer::ip::IP_LEN};
 use std::net::IpAddr;
 use thiserror::Error;
 use x509_certificate::X509Certificate;
@@ -50,7 +50,12 @@ impl SignedIp {
     }
 }
 
-pub fn pack_ip_with_timestamp(packer: &Packer, ip_addr: IpAddr, port: u16, timestamp: u64) -> avalanche_types::errors::Result<()> {
+pub fn pack_ip_with_timestamp(
+    packer: &Packer,
+    ip_addr: IpAddr,
+    port: u16,
+    timestamp: u64,
+) -> avalanche_types::errors::Result<()> {
     packer.pack_bytes(&ip_addr_to_bytes(ip_addr))?;
     packer.pack_u16(port)?;
     packer.pack_u64(timestamp)?;
