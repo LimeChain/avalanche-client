@@ -5,7 +5,7 @@ use std::sync::Arc;
 use std::time::SystemTime;
 
 use super::bytes_to_ip_addr;
-use crate::network::peer::ipaddr::{SignedIp, UnsignedIp};
+use crate::peer::ipaddr::{SignedIp, UnsignedIp};
 use avalanche_types::ids::node;
 use avalanche_types::proto::p2p;
 use avalanche_types::proto::p2p::Version;

@@ -1,6 +1,6 @@
 use crate::bootstrap::Bootstrappers;
-use crate::crypto::ecdsa;
-use crate::network::peer::ipaddr::pack_ip_with_timestamp;
+use crypto::ecdsa;
+use network::peer::ipaddr::pack_ip_with_timestamp;
 use avalanche_types::message;
 use avalanche_types::packer::ip::IP_LEN;
 use avalanche_types::packer::Packer;
@@ -16,8 +16,6 @@ use std::sync::{Arc, Mutex};
 use std::time::{Duration, SystemTime};
 
 mod bootstrap;
-mod crypto;
-mod network;
 
 fn main() {
     let env = Env::default()

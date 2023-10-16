@@ -1,16 +1,11 @@
 [package]
-name = "avalanche-client"
+name = "crypto"
+version = "0.1.0"
 edition = "2021"
-version = "0.0.0"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
-[workspace]
-members = [ "network", "crypto" ]
-
 [dependencies]
-network = { path = "network" }
-crypto = { path = "crypto" }
 avalanche-types = { version = "0.1.4", features = ["message", "proto"] }
 log = "0.4.20"
 env_logger = "0.10.0"

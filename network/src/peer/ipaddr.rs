@@ -4,7 +4,7 @@ use std::net::IpAddr;
 use thiserror::Error;
 use x509_certificate::X509Certificate;
 
-use crate::network::peer::staking::{self, SignatureValidationError};
+use crate::peer::staking::{self, SignatureValidationError};
 
 pub struct SignedIp {
     pub unsigned_ip: UnsignedIp,
