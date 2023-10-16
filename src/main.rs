@@ -44,20 +44,9 @@ fn start() -> io::Result<()> {
     let peer = bootstrappers.mainnet.get(0).expect("failed to get peer");
     let server_name: ServerName = ServerName::try_from(peer.ip.ip().to_string().as_ref()).unwrap();
     let sock = TcpStream::connect(peer.ip).unwrap();
-    let tls_client = Arc::new(Mutex::new(TlsClient::new(
-        sock,
-        server_name,
-        connector.client_config.clone(),
-        1,
-    )));
+    let mut tls_client = TlsClient::new(sock, server_name, connector.client_config.clone(), 1);
 
     let rt = tokio::runtime::Runtime::new().unwrap();
-    let tls_client_clone = tls_client.clone();
-    rt.spawn(async move {
-        connector
-            .connect(tls_client_clone, Duration::from_secs(10))
-            .expect("failed to connect to peer");
-    });
 
     let now = SystemTime::now();
     let now_unix = now
@@ -90,10 +79,14 @@ fn start() -> io::Result<()> {
 
     let msg = msg.serialize().expect("failed serialize");
     info!("Sending version message: {}", hex::encode(msg.clone()));
-    tls_client
-        .lock()
-        .expect("Failed to obtain lock")
-        .write_message(&msg)
-        .expect("failed to write");
+
+    tls_client.write_message(&msg).expect("failed to write");
+
+    rt.spawn(async move {
+        connector
+            .connect(tls_client, Duration::from_secs(10))
+            .expect("failed to connect to peer");
+    });
+
     Ok(())
 }
