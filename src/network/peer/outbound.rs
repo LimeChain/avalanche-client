@@ -56,21 +56,15 @@ impl Connector {
 
     /// Creates a connection to the specified peer's IP and port.
     /// ref. <https://pkg.go.dev/github.com/ava-labs/avalanchego/network/peer#NewTLSClientUpgrader>
-    pub fn connect(
-        &self,
-        tls_client: Arc<Mutex<TlsClient>>,
-        _timeout: Duration,
-    ) -> io::Result<Stream> {
+    pub fn connect(&self, mut tls_client: TlsClient, _timeout: Duration) -> io::Result<Stream> {
         let mut poll = mio::Poll::new().unwrap();
         let mut events = mio::Events::with_capacity(32);
-        let mut unlocked = tls_client.lock().unwrap();
         poll.registry().register(
-            &mut unlocked.socket,
+            &mut tls_client.socket,
             CLIENT,
             mio::Interest::READABLE | mio::Interest::WRITABLE,
         )?;
 
-        drop(unlocked);
         // Start an event loop.
         loop {
             // Poll Mio for events, blocking until we get an event.
@@ -82,10 +76,8 @@ impl Connector {
                 // determine for which socket the event is.
                 match event.token() {
                     CLIENT => {
-                        let mut tls_client = tls_client.lock().unwrap();
                         tls_client.ready(event);
                         tls_client.reregister(poll.registry())?;
-                        drop(tls_client);
                         break;
                     }
                     // We don't expect any events with tokens other than those we provided.
