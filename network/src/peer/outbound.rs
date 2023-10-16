@@ -1,4 +1,3 @@
-use std::sync::Mutex;
 use std::{
     io::{self, Error, ErrorKind, Read, Write},
     sync::Arc,

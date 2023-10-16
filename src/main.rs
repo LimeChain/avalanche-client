@@ -12,7 +12,6 @@ use network::tls::client::TlsClient;
 use rustls::ServerName;
 use std::io;
 use std::net::{IpAddr, Ipv4Addr};
-use std::sync::{Arc, Mutex};
 use std::time::{Duration, SystemTime};
 
 mod bootstrap;
@@ -80,11 +79,13 @@ fn start() -> io::Result<()> {
 
     tls_client.write_message(&msg).expect("failed to write");
 
-    rt.spawn(async move {
+    let task = rt.spawn(async move {
         connector
             .connect(tls_client, Duration::from_secs(10))
             .expect("failed to connect to peer");
     });
+
+    rt.block_on(task)?;
 
     Ok(())
 }
