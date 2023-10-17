@@ -6,44 +6,48 @@ use avalanche_types::packer::ip::IP_LEN;
 use avalanche_types::packer::Packer;
 use env_logger::Env;
 use log::info;
-use mio::net::TcpStream;
 use network::peer::outbound;
 use network::tls::client::TlsClient;
 use rustls::ServerName;
+use tokio::io::AsyncWriteExt;
+use tokio::net::TcpStream;
+use tokio_rustls::TlsConnector;
 use std::io;
 use std::net::{IpAddr, Ipv4Addr};
-use std::time::{Duration, SystemTime};
+use std::time::SystemTime;
 
 mod bootstrap;
 
-fn main() {
+#[tokio::main]
+async fn main() {
     let env = Env::default()
         .filter_or("MY_LOG_LEVEL", "info")
         .write_style_or("MY_LOG_STYLE", "always");
 
     env_logger::init_from_env(env);
 
-    match start() {
-        Ok(_) => info!("Client started"),
-        Err(e) => info!("Client failed to start: {}", e),
+    match start().await {
+        Ok(_) => info!("Client ended"),
+        Err(e) => info!("Client failed: {}", e),
     }
 }
 
 /*
  * Starts the client
  */
-fn start() -> io::Result<()> {
+async fn start() -> io::Result<()> {
     let bootstrappers = Bootstrappers::read_boostrap_json();
     let cert =
         network::tls::certificate::generate_certificate().expect("failed to generate certificate");
     let connector = outbound::Connector::new_from_pem(&cert.key_path, &cert.cert_path)?;
+    let tls_connector = TlsConnector::from(connector.client_config);
 
     let peer = bootstrappers.mainnet.get(0).expect("failed to get peer");
     let server_name: ServerName = ServerName::try_from(peer.ip.ip().to_string().as_ref()).unwrap();
-    let sock = TcpStream::connect(peer.ip).unwrap();
-    let mut tls_client = TlsClient::new(sock, server_name, connector.client_config.clone(), 1);
 
-    let rt = tokio::runtime::Runtime::new().unwrap();
+    let stream = TcpStream::connect(peer.ip).await.unwrap();
+    let tls_stream = tls_connector.connect(server_name, stream).await?;
+    let mut tls_client = TlsClient::new(tls_stream, 1);
 
     let now = SystemTime::now();
     let now_unix = now
@@ -77,15 +81,16 @@ fn start() -> io::Result<()> {
     let msg = msg.serialize().expect("failed serialize");
     info!("Sending version message: {}", hex::encode(msg.clone()));
 
-    tls_client.write_message(&msg).expect("failed to write");
+    tls_client.stream.write_all(&msg).await?;
 
-    let task = rt.spawn(async move {
-        connector
-            .connect(tls_client, Duration::from_secs(10))
-            .expect("failed to connect to peer");
-    });
+    loop {
+        tls_client.stream.get_ref().0.readable().await?;
 
-    rt.block_on(task)?;
+        if tls_client.do_read().await?.is_none() {
+            info!("Connection has been closed");
+            break;
+        }
+    }
 
     Ok(())
 }

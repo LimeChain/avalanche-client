@@ -1,13 +1,12 @@
 use std::{
     io::{self, Error, ErrorKind, Read, Write},
     sync::Arc,
-    time::{Duration, SystemTime},
+    time::SystemTime,
 };
 
 use avalanche_types::ids::node;
 
 use crate::peer::ipaddr::SignedIp;
-use crate::tls::client::{TlsClient, CLIENT};
 use rustls::Certificate;
 use rustls::{ClientConfig, ClientConnection, ServerName};
 use x509_certificate::X509Certificate;
@@ -51,39 +50,6 @@ impl Connector {
             x509_certificate: None,
             ip: None,
         })
-    }
-
-    /// Creates a connection to the specified peer's IP and port.
-    /// ref. <https://pkg.go.dev/github.com/ava-labs/avalanchego/network/peer#NewTLSClientUpgrader>
-    pub fn connect(&self, mut tls_client: TlsClient, _timeout: Duration) -> io::Result<Stream> {
-        let mut poll = mio::Poll::new().unwrap();
-        let mut events = mio::Events::with_capacity(32);
-        poll.registry().register(
-            &mut tls_client.socket,
-            CLIENT,
-            mio::Interest::READABLE | mio::Interest::WRITABLE,
-        )?;
-
-        // Start an event loop.
-        loop {
-            // Poll Mio for events, blocking until we get an event.
-            poll.poll(&mut events, None)?;
-
-            // Process each event.
-            for event in events.iter() {
-                // We can use the token we previously provided to `register` to
-                // determine for which socket the event is.
-                match event.token() {
-                    CLIENT => {
-                        tls_client.ready(event);
-                        tls_client.reregister(poll.registry())?;
-                        break;
-                    }
-                    // We don't expect any events with tokens other than those we provided.
-                    _ => unreachable!(),
-                }
-            }
-        }
     }
 }
 
