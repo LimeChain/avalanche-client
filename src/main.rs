@@ -84,8 +84,6 @@ async fn start() -> io::Result<()> {
     tls_client.stream.write_all(&msg).await?;
 
     loop {
-        tls_client.stream.get_ref().0.readable().await?;
-
         if tls_client.do_read().await?.is_none() {
             info!("Connection has been closed");
             break;
