@@ -17,9 +17,9 @@ avalanche-types = { version = "0.1.4", features = ["message", "proto"] }
 log = "0.4.20"
 env_logger = "0.10.0"
 tokio = { version = "1.32.0", features = ["rt-multi-thread"] }
-mio = "0.8.8"
+rustls = { version = "0.21.7", features = ["logging", "dangerous_configuration"]}
+tokio-rustls = "0.24.1"
 hex = "0.4.3"
 cert-manager = "0.0.10"
-rustls = { version = "0.21.7", features = ["logging", "dangerous_configuration"]}
 serde = { version = "1.0.189", features = ["derive"] }
 serde_json = "1.0.107"
