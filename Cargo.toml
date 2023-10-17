@@ -1,6 +1,6 @@
 [package]
 name = "avalanche-client"
-edition = "2021"
+edition = "2023"
 version = "0.0.0"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -8,6 +8,8 @@ version = "0.0.0"
 [workspace]
 members = [ "network", "crypto" ]
 
+# Note that the network and crypto dependencies are only temporarily locally referenced
+# until we get the changes we made merged and published to the corresponding crates
 [dependencies]
 network = { path = "network" }
 crypto = { path = "crypto" }
