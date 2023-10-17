@@ -1,15 +1,15 @@
 use log::{info, warn};
-use tokio::net::TcpStream;
 use std::io::{self, Error, ErrorKind, Read};
 use std::time::SystemTime;
+use tokio::net::TcpStream;
 
 use super::bytes_to_ip_addr;
 use crate::peer::ipaddr::{SignedIp, UnsignedIp};
 use avalanche_types::ids::node;
 use avalanche_types::proto::p2p;
 use avalanche_types::proto::p2p::Version;
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio_rustls::client::TlsStream;
-use tokio::io::AsyncReadExt;
 use x509_certificate::X509Certificate;
 
 /// This encapsulates the TCP-level connection, some connection
@@ -24,10 +24,7 @@ pub struct TlsClient {
 }
 
 impl TlsClient {
-    pub fn new(
-        stream: TlsStream<TcpStream>,
-        network_id: u32,
-    ) -> Self {
+    pub fn new(stream: TlsStream<TcpStream>, network_id: u32) -> Self {
         Self {
             stream,
             network_id,
@@ -38,13 +35,27 @@ impl TlsClient {
         }
     }
 
+    /// Writes to the TlsStream with a prepended 4 byte size of the messages
+    pub async fn prepended_write(&mut self, message: &[u8]) -> io::Result<()> {
+        let length = message.len();
+        // Explicitly turning into a u32 so that 32 bit platforms won't be different behaviour
+        let length_bytes = (length as u32).to_be_bytes();
+
+        // Write the length bytes initially
+        self.stream.write_all(&length_bytes).await?;
+
+        self.stream.write_all(message).await?;
+
+        Ok(())
+    }
+
     pub async fn do_read(&mut self) -> io::Result<Option<()>> {
         let mut length = [0; 4];
 
         match self.stream.read_exact(&mut length).await {
             Ok(read) => debug_assert_eq!(read, 4),
             Err(err) if err.kind() == ErrorKind::UnexpectedEof => return Ok(None),
-            Err(err) => return Err(err)
+            Err(err) => return Err(err),
         };
 
         let length = u32::from_be_bytes(length) as usize;

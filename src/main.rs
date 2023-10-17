@@ -1,20 +1,19 @@
 use crate::bootstrap::Bootstrappers;
-use crypto::ecdsa;
-use network::peer::ipaddr::pack_ip_with_timestamp;
 use avalanche_types::message;
 use avalanche_types::packer::ip::IP_LEN;
 use avalanche_types::packer::Packer;
+use crypto::ecdsa;
 use env_logger::Env;
 use log::info;
+use network::peer::ipaddr::pack_ip_with_timestamp;
 use network::peer::outbound;
 use network::tls::client::TlsClient;
 use rustls::ServerName;
-use tokio::io::AsyncWriteExt;
-use tokio::net::TcpStream;
-use tokio_rustls::TlsConnector;
 use std::io;
 use std::net::{IpAddr, Ipv4Addr};
 use std::time::SystemTime;
+use tokio::net::TcpStream;
+use tokio_rustls::TlsConnector;
 
 mod bootstrap;
 
@@ -81,7 +80,7 @@ async fn start() -> io::Result<()> {
     let msg = msg.serialize().expect("failed serialize");
     info!("Sending version message: {}", hex::encode(msg.clone()));
 
-    tls_client.stream.write_all(&msg).await?;
+    tls_client.prepended_write(&msg).await?;
 
     loop {
         if tls_client.do_read().await?.is_none() {
